@@ -1,1 +1,2 @@
-# ZAI
+# ZAI - PSISK
+# Hubert Stankiewicz

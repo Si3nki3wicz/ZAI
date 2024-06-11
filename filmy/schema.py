@@ -45,14 +45,19 @@ class AktorType(DjangoObjectType):
 # Query
 #
 
+class Filters(graphene.InputObjectType):
+    tytul_contains = graphene.String(default_value="")
+    rok_mniejszy_od = graphene.Int(default_value=2000)
+    nazwisko_aktora = graphene.String(default_value="")
+
 class Query(graphene.ObjectType):
     film_wg_id = graphene.Field(FilmType, id=graphene.ID(required=True))
     extrainfo = graphene.List(ExtraInfoType)
     extrainfo_wg_id = graphene.Field(ExtraInfoType, id=graphene.String())
     oceny = graphene.List(OcenaType)
     oceny_wg_filmu = graphene.List(OcenaType, film_tytul_contains=graphene.String(default_value=""))
-    #filmy = graphene.List(FilmType, filters=Filters())
-    #aktorzy = graphene.List(AktorType, filters=Filters())
+    filmy = graphene.List(FilmType, filters=Filters())
+    aktorzy = graphene.List(AktorType, filters=Filters())
 
     def resolve_filmy(root, info, filters):
         filmy = Film.objects.all()
@@ -185,7 +190,3 @@ schema = graphene.Schema(query=Query, mutation=Mutation)
 
 
 
-class Filters(graphene.InputObjectType):
-    tytul_zawiera = graphene.String(default_value="")
-    rok_mniejszy_od = graphene.Int(default_value=2000)
-    nazwisko_aktora = graphene.String(default_value="")

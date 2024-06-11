@@ -1,7 +1,9 @@
 import graphene
+from django.db.models import Count
 from graphene_django import DjangoObjectType
 from django.contrib.auth.models import User
 from .models import Film, ExtraInfo, Ocena, Aktor
+import graphql_jwt
 
 #
 # Typy
@@ -44,15 +46,14 @@ class AktorType(DjangoObjectType):
 #
 
 class Query(graphene.ObjectType):
-    filmy = graphene.List(FilmType, filters=Filters())
     film_wg_id = graphene.Field(FilmType, id=graphene.ID(required=True))
     extrainfo = graphene.List(ExtraInfoType)
     extrainfo_wg_id = graphene.Field(ExtraInfoType, id=graphene.String())
     oceny = graphene.List(OcenaType)
     oceny_wg_filmu = graphene.List(OcenaType, film_tytul_contains=graphene.String(default_value=""))
-    aktorzy = graphene.List(AktorType, filters=Filters())
+    #filmy = graphene.List(FilmType, filters=Filters())
+    #aktorzy = graphene.List(AktorType, filters=Filters())
 
-    @login_required
     def resolve_filmy(root, info, filters):
         filmy = Film.objects.all()
         for f in filmy:
@@ -100,6 +101,17 @@ class Query(graphene.ObjectType):
             aktor = Aktor.objects.filter(nazwisko__contains=filters.nazwisko_aktora)
             return aktor
         return aktorzy
+
+    def resolve_filmy(root, info, filters):
+        user = info.context.user
+        if not user.is_authenticated:
+            raise Exception('Nie dostarczono danych uwierzytelniających')
+
+        filmy = Film.objects.all().annotate(l_count = Count("id"))
+        if filters is not None:
+            f = Film.objects.filter(tytul__contains=filters.tytul_contains).annotate(l_count = Count("id"))
+            return f
+        return filmy
 
 
 
@@ -165,6 +177,9 @@ class Mutation(graphene.ObjectType):
     create_film = FilmCreateMutation.Field()
     update_film = FilmUpdateMutation.Field()
     delete_film = FilmDeleteMutation.Field()
+    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
+    verify_token = graphql_jwt.Verify.Field()
+    refresh_token = graphql_jwt.Refresh.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
 
